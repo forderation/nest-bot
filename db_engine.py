@@ -1,0 +1,110 @@
+import mysql.connector as connector
+from pypika import Table, Query
+from pypika.terms import Interval
+from pypika import functions as fn
+from pypika.enums import Boolean as BoolSql
+from enum import Enum
+
+
+class ApproveState(Enum):
+    APPROVED = "approved"
+    DISAGREE = "disagree"
+    WAITING = "waiting"
+
+
+class ProductState(Enum):
+    BAIK = "baik"
+    HILANG = "hilang"
+    BELUM_MELAPORKAN = "belum_melaporkan"
+    DIKEMBALIKAN = "dikembalikan"
+
+
+class DBHelper:
+
+    def __init__(self, dbname="nest-bot"):
+        self.dbname = dbname
+        self.db = None
+        self.TABLE_EMPLOYEES = Table('employees')
+        self.TABLE_JENIS_PRODUCTS = Table('jenis_products')
+        self.TABLE_MERK_PRODUCTS = Table('merk_products')
+        self.TABLE_POSITION_PRODUCTS = Table('position_products')
+        self.TABLE_PRODUCTS = Table('products')
+        self.NULL = "NULL"
+        self.build_connection()
+
+    def build_connection(self):
+        while True:
+            try:
+                self.db = connector.connect(
+                    host="localhost",
+                    user="root",
+                    passwd="",
+                    database=self.dbname
+                )
+                print("Connected with database")
+                break
+            except connector.errors.InterfaceError:
+                print("Connection error, try to connecting again")
+
+    def register(self, user_id, full_name, nik):
+        cursor = self.db.cursor(buffered=True)
+        query = Query.into(self.TABLE_EMPLOYEES) \
+            .columns(self.TABLE_EMPLOYEES.full_name, self.TABLE_EMPLOYEES.telegram_user_id, self.TABLE_EMPLOYEES.nik) \
+            .insert(full_name, user_id, nik)
+        print(query.get_sql(quote_char=None))
+        cursor.execute(query.get_sql(quote_char=None))
+        self.db.commit()
+
+    def is_already_register(self, user_id: int, nik: int) -> bool:
+        cursor = self.db.cursor(buffered=True)
+        query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.star).where(
+            (self.TABLE_EMPLOYEES.telegram_user_id == user_id) &
+            (self.TABLE_EMPLOYEES.nik == nik)
+        )
+        print(query.get_sql(quote_char=None))
+        cursor.execute(query.get_sql(quote_char=None))
+        if cursor.fetchone() is None:
+            return False
+        else:
+            return True
+
+    def is_user_id_already_register(self, user_id: int) -> bool:
+        cursor = self.db.cursor(buffered=True)
+        query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.star).where(
+            self.TABLE_EMPLOYEES.telegram_user_id == user_id
+        )
+        cursor.execute(query.get_sql(quote_char=None))
+        if cursor.fetchone() is None:
+            return False
+        else:
+            return True
+
+    def get_employees_id(self, user_id: int) -> int:
+        cursor = self.db.cursor(buffered=True)
+        query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id).where(
+            self.TABLE_EMPLOYEES.telegram_user_id == user_id
+        )
+        cursor.execute(query.get_sql(quote_char=None))
+        list_convert = list(cursor.fetchone())
+        return list_convert[0]
+
+    def get_related_item(self, user_id: int) -> tuple:
+        cursor = self.db.cursor(buffered=True)
+        query = Query.from_(self.TABLE_POSITION_PRODUCTS) \
+            .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
+            .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
+            .select(
+            self.TABLE_PRODUCTS.serial_number,
+            self.TABLE_PRODUCTS.product_name,
+            self.TABLE_JENIS_PRODUCTS.jenis_name,
+            self.TABLE_JENIS_PRODUCTS.reminder,
+            self.TABLE_POSITION_PRODUCTS.product_state,
+            self.TABLE_POSITION_PRODUCTS.updated_at
+        ).where(
+            (self.TABLE_POSITION_PRODUCTS.employee_id == self.get_employees_id(user_id)) &
+            (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.DIKEMBALIKAN.value) &
+            (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
+        )
+        print(query.get_sql(quote_char=None))
+        cursor.execute(query.get_sql(quote_char=None))
+        return cursor.fetchall()
