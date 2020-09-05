@@ -65,11 +65,11 @@ def register_handler(update, context):
 def my_item_handler(update, context):
     user_id = int(update.message.from_user.id)
     if db.is_user_id_already_register(user_id):
-        text_resp = """serial number ; nama produk ; jenis produk ; tanggal harus lapor berikutnya ; status produk ; terakhir update"""
+        text_resp = ""
         for sn, product_name, jenis_name, date_left, product_state, updated in db.get_related_item(user_id):
-            text_resp += "\n{} ; {} ; {} ; {} hari ; {} ; {}".format(
-                sn, product_name, jenis_name, date_left, product_state, updated
-            )
+            text_resp += "\nserial number: {} \nnama produk: {} \njenis produk: {} \ndurasi: " \
+                         "{} hari \nstatus produk: {} \nupdate terakhir: {} \n"\
+                .format(sn, product_name, jenis_name, date_left, product_state, updated)
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text_resp
