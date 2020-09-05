@@ -1,9 +1,9 @@
+from enum import Enum
+from sqlite3.dbapi2 import Cursor
+
 import mysql.connector as connector
 from pypika import Table, Query
-from pypika.terms import Interval
-from pypika import functions as fn
 from pypika.enums import Boolean as BoolSql
-from enum import Enum
 
 
 class ApproveState(Enum):
@@ -28,6 +28,7 @@ class DBHelper:
         self.TABLE_JENIS_PRODUCTS = Table('jenis_products')
         self.TABLE_MERK_PRODUCTS = Table('merk_products')
         self.TABLE_POSITION_PRODUCTS = Table('position_products')
+        self.TABLE_REMINDER_GROUPS = Table('reminder_groups')
         self.TABLE_PRODUCTS = Table('products')
         self.NULL = "NULL"
         self.build_connection()
@@ -149,10 +150,11 @@ class DBHelper:
         products_id = list(cursor.fetchone())[0]
         return employee_id, products_id
 
+    def get_new_cursor(self) -> Cursor:
+        return self.db.cursor(buffered=True)
+
     def update_item_condition(self, user_id, sn, product_state, photo_path):
-        print(photo_path)
         photo_path = photo_path.replace("\\", '/')
-        print(photo_path)
         cursor = self.db.cursor(buffered=True)
         employee_id, products_id = self.__get_foreign_position_products(user_id, sn)
         q = Query.update(self.TABLE_POSITION_PRODUCTS).set(
@@ -172,3 +174,75 @@ class DBHelper:
         ).insert(BoolSql.true, photo_path, products_id, product_state, employee_id)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+
+    def insert_reminder_groups(self, chat_id, chat_name):
+        cursor = self.get_new_cursor()
+        q = Query.into(self.TABLE_REMINDER_GROUPS).columns(
+            self.TABLE_REMINDER_GROUPS.group_id, self.TABLE_REMINDER_GROUPS.last_known_group_name
+        ).insert(int(chat_id), str(chat_name))
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+
+    def is_already_reminder(self, chat_id):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_REMINDER_GROUPS).select(self.TABLE_REMINDER_GROUPS.star).where(
+            self.TABLE_REMINDER_GROUPS.group_id == int(chat_id)
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        if cursor.fetchone() is None:
+            return False
+        else:
+            return True
+
+    def get_reminder_groups(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_REMINDER_GROUPS).select(self.TABLE_REMINDER_GROUPS.star)
+        cursor.execute(q.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def get_item_to_remind(self):
+        cursor = self.get_new_cursor()
+        q1 = Query.from_(self.TABLE_POSITION_PRODUCTS) \
+            .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
+            .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
+            .join(self.TABLE_EMPLOYEES).on(self.TABLE_EMPLOYEES.id == self.TABLE_POSITION_PRODUCTS.employee_id) \
+            .select(
+            self.TABLE_PRODUCTS.serial_number,
+            self.TABLE_PRODUCTS.product_name,
+            self.TABLE_JENIS_PRODUCTS.jenis_name,
+            self.TABLE_POSITION_PRODUCTS.product_state,
+            self.TABLE_POSITION_PRODUCTS.updated_at,
+            self.TABLE_EMPLOYEES.full_name
+        ).where(
+            (self.TABLE_POSITION_PRODUCTS.product_state == ProductState.BELUM_MELAPORKAN.value) &
+            (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
+        )
+        cursor.execute(q1.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def get_item_to_update(self):
+        cursor = self.get_new_cursor()
+        q1 = Query.from_(self.TABLE_POSITION_PRODUCTS) \
+            .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
+            .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
+            .select(
+            self.TABLE_POSITION_PRODUCTS.id,
+            self.TABLE_JENIS_PRODUCTS.reminder,
+            self.TABLE_POSITION_PRODUCTS.updated_at
+        ).where(
+            (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.DIKEMBALIKAN.value) &
+            (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
+        )
+        cursor.execute(q1.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def update_item_state(self, list_update_remind):
+        for item in list_update_remind:
+            cursor = self.get_new_cursor()
+            id_ps = item[0]
+            state = item[1]
+            q = Query.update(self.TABLE_POSITION_PRODUCTS).set(
+                self.TABLE_POSITION_PRODUCTS.product_state, state
+            ).where(self.TABLE_POSITION_PRODUCTS.product_id == id_ps)
+            cursor.execute(q.get_sql(quote_char=None))
+            self.db.commit()

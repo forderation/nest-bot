@@ -1,12 +1,13 @@
-import os
-import logging
-import re
-import sys, getopt
-from user_session import Session
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode, ChatAction
-from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, ConversationHandler, CallbackQueryHandler
-from db_engine import DBHelper, ApproveState, ProductState
 import datetime
+import logging
+import os
+
+from telegram import InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, ConversationHandler
+
+from db_engine import DBHelper
+from scheduler import Scheduler
+from user_session import Session
 
 # command list
 # start_bot - none
@@ -23,6 +24,7 @@ product_state_list = ["baik", "hilang", "dikembalikan"]
 session = Session()
 logger = logging.getLogger(__name__)
 RECEIVE_ITEM, RECEIVE_PHOTOS = range(1, 3)
+scheduler = Scheduler()
 
 
 def is_product_state_in_list(x: str) -> bool:
@@ -178,9 +180,10 @@ def receive_photo_callback(update, context):
     session.remove_user(user_id)
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="update item berhasil dilakukan"
+        text="update item berhasil dilakukan, anda bisa melakukan update kembali menggunakan format yang sama,"
+             " untuk mengakhir sesi update tekan command /cancel_update"
     )
-    return ConversationHandler.END
+    return RECEIVE_ITEM
 
 
 def cancel_update(update, context):
@@ -192,6 +195,35 @@ def cancel_update(update, context):
         text="sesi update telah dinon-aktifkan"
     )
     return ConversationHandler.END
+
+
+def subscribe_handler(update, context):
+    chat_group_id = update.message.chat.id
+    title_group = update.message.chat.title
+    print(update)
+    if db.is_already_reminder(chat_group_id):
+        context.bot.send_message(
+            chat_id=chat_group_id,
+            text="group sudah berlangganan notifikasi reminder sebelumnya"
+        )
+    else:
+        db.insert_reminder_groups(chat_group_id, title_group)
+        context.bot.send_message(
+            chat_id=chat_group_id,
+            text="berhasil melakukan langganan notifikasi kepada grup " + title_group
+        )
+
+
+def turn_on_reminder_handler(update, context):
+    if scheduler.turn_on_reminder(context):
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="berhasil menyalakan reminder"
+        )
+
+
+def turn_off_reminder(update, context):
+    pass
 
 
 if __name__ == "__main__":
@@ -212,6 +244,9 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(conv_input_data)
     up.dispatcher.add_handler(CommandHandler('start_bot', start_bot))
     up.dispatcher.add_handler(CommandHandler('register', register_handler))
+    up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
+    up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
+    up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
     print("Making conversation done")
