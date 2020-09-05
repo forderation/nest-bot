@@ -3,7 +3,7 @@ from sqlite3.dbapi2 import Cursor
 
 import mysql.connector as connector
 from pypika import Table, Query
-from pypika.enums import Boolean as BoolSql
+from pypika.enums import Boolean as BoolSql, Order
 from pypika.functions import Count
 
 
@@ -284,3 +284,31 @@ class DBHelper:
                                                                      self.TABLE_PRODUCTS.product_state)
         cursor.execute(q1.get_sql(quote_char=None))
         return list(cursor.fetchall())
+
+    def get_track_record(self, product_id):
+        cursor = self.get_new_cursor()
+        q1 = Query.from_(self.TABLE_POSITION_PRODUCTS) \
+            .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
+            .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
+            .join(self.TABLE_EMPLOYEES).on(self.TABLE_EMPLOYEES.id == self.TABLE_POSITION_PRODUCTS.employee_id) \
+            .join(self.TABLE_MERK_PRODUCTS).on(self.TABLE_PRODUCTS.merk_id == self.TABLE_MERK_PRODUCTS.id) \
+            .select(
+            self.TABLE_PRODUCTS.serial_number,
+            self.TABLE_PRODUCTS.product_name,
+            self.TABLE_MERK_PRODUCTS.merk_name,
+            self.TABLE_JENIS_PRODUCTS.jenis_name,
+            self.TABLE_POSITION_PRODUCTS.product_state,
+            self.TABLE_EMPLOYEES.full_name,
+            self.TABLE_POSITION_PRODUCTS.updated_at,
+            self.TABLE_POSITION_PRODUCTS.picture_loc) \
+            .where(self.TABLE_POSITION_PRODUCTS.product_id == product_id) \
+            .orderby(self.TABLE_POSITION_PRODUCTS.updated_at, order=Order.desc)
+        cursor.execute(q1.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def get_product_id(self, serial_number: str):
+        cursor = self.get_new_cursor()
+        q1 = Query.from_(self.TABLE_PRODUCTS).select(self.TABLE_PRODUCTS.id) \
+            .where(self.TABLE_PRODUCTS.serial_number == serial_number.upper().strip())
+        cursor.execute(q1.get_sql(quote_char=None))
+        return cursor.fetchone()

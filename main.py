@@ -276,6 +276,34 @@ def send_typing_state(update, context):
     )
 
 
+def track_record(update, context):
+    send_typing_state(update, context)
+    serial_number = update.message.text.replace('/track_record', '').strip().upper()
+    pd_id = db.get_product_id(serial_number)
+    if pd_id is None:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="serial number tidak ditemukan"
+        )
+    else:
+        track_records = db.get_track_record(pd_id)
+        if not track_records:
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="serial number ditemukan namun belum memiliki track record"
+            )
+        else:
+            df = DataReport.recap_track_records(track_records)
+            date_recap = datetime.datetime.today().strftime('%Y-%m-%d')
+            file_name = 'rekap track record {} tanggal {}.xlsx'.format(serial_number, date_recap)
+            df.to_excel(file_name, index=False)
+            context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=open(file_name, 'rb'),
+                filename=file_name
+            )
+
+
 if __name__ == "__main__":
     print("Connecting to telegram server ...")
     up = Updater("1305082410:AAGGA_lYJJyHN-YeCYa_LqtWwJSwfA_qqRc", use_context=True)
@@ -298,6 +326,7 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
     up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
+    up.dispatcher.add_handler(CommandHandler('track_record', track_record))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))

@@ -28,3 +28,11 @@ class DataReport:
         file_name = "product state {}.png".format(date_recap)
         plt.savefig(file_name)
         return file_name
+
+    @staticmethod
+    def recap_track_records(data_records):
+        df = pd.DataFrame(data_records,
+                          columns=['serial number', 'nama item', 'merk item', 'jenis item', 'kondisi item', 'pemegang',
+                                   'tanggal laporan terakhir', 'lokasi gambar'])
+        df['kondisi item'] = df['kondisi item'].apply(lambda x: str(x).replace("_", " ").upper())
+        return df
