@@ -1,10 +1,11 @@
 import datetime
 import logging
 import os
-
-from telegram import InlineKeyboardButton
+import seaborn as sns
+from telegram import InlineKeyboardButton, ChatAction
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, ConversationHandler
 
+from data_report import DataReport
 from db_engine import DBHelper
 from scheduler import Scheduler
 from user_session import Session
@@ -233,6 +234,19 @@ def turn_off_reminder(update, context):
     )
 
 
+def recap_recent_update_item(update, context):
+    send_typing_state(update, context)
+    df = DataReport.recap_as_dataframe(db.get_recap_recent_update())
+    date_recap = datetime.datetime.today().strftime('%Y-%m-%d')
+    file_name = 'rekap item tanggal {}.xlsx'.format(date_recap)
+    df.to_excel(file_name, index=False)
+    context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=open(file_name, 'rb'),
+        filename=file_name
+    )
+
+
 def unsubscribe_handler(update, context):
     chat_id = update.message.chat.id
     if not db.is_already_reminder(chat_id):
@@ -246,6 +260,13 @@ def unsubscribe_handler(update, context):
             chat_id=chat_id,
             text="fitur notifikasi berlangganan berhasil dimatikan"
         )
+
+
+def send_typing_state(update, context):
+    context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        action=ChatAction.TYPING
+    )
 
 
 if __name__ == "__main__":
@@ -262,13 +283,13 @@ if __name__ == "__main__":
             RECEIVE_PHOTOS: [MessageHandler(Filters.photo, receive_photo_callback)]
         }
     )
-    # up.dispatcher.add_error_handler(fallback_handler)
     up.dispatcher.add_handler(conv_input_data)
     up.dispatcher.add_handler(CommandHandler('start_bot', start_bot))
     up.dispatcher.add_handler(CommandHandler('register', register_handler))
     up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
     up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
+    up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
