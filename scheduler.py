@@ -8,21 +8,22 @@ class Scheduler:
 
     def __init__(self):
         self.scheduler = BackgroundScheduler()
-        self.id_job = 'nest-bot-reminders'
-        self.db = None
+        self.id_job_broadcast = 'nest-bot-reminders-broadcast'
+        self.id_job_update_item = 'nest-bot-reminders-update-item'
+        self.db = DBHelper()
         self.context = None
+        self.is_on = False
+        self.scheduler.add_job(self.__update_item_state, 'interval', hours=23, id=self.id_job_update_item,
+                               replace_existing=True)
+        self.scheduler.start()
 
     def turn_on_reminder(self, context_bot) -> bool:
-        self.db = DBHelper()
+        self.is_on = True
         self.context = context_bot
         self.db.build_connection()
-        self.scheduler.add_job(self.__do_remind, 'interval', hours=10, id=self.id_job, replace_existing=True)
-        self.scheduler.start()
+        self.scheduler.add_job(self.__broadcast_remind, 'interval', hours=24, id=self.id_job_broadcast,
+                               replace_existing=True)
         return True
-
-    def __do_remind(self):
-        self.__update_item_state()
-        self.__broadcast_remind()
 
     def __broadcast_remind(self):
         text_remind = "=== REMINDER ===" \
@@ -40,13 +41,15 @@ class Scheduler:
     def __update_item_state(self):
         list_to_remind = self.db.get_item_to_update()
         list_update_remind = []
-        for id_ps, duration, updated in list_to_remind:
+        for id_ps, duration, ps, updated in list_to_remind:
             date_update = datetime.datetime.strptime(str(updated), "%Y-%m-%d %H:%M:%S")
             end_date = date_update + datetime.timedelta(days=duration)
             time_since_insertion = datetime.datetime.now() - end_date
-            if time_since_insertion.days > 1:
+            if time_since_insertion.days > 1 and ps != ProductState.DIKEMBALIKAN:
                 list_update_remind.append([id_ps, ProductState.BELUM_MELAPORKAN.value])
+        print(list_update_remind)
         self.db.update_item_state(list_update_remind)
 
     def turn_off_reminder(self):
-        self.scheduler.remove_job(self.id_job)
+        self.scheduler.remove_job(self.id_job_broadcast)
+        self.is_on = False

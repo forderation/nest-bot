@@ -62,7 +62,6 @@ class DBHelper:
             (self.TABLE_EMPLOYEES.telegram_user_id == user_id) &
             (self.TABLE_EMPLOYEES.nik == nik)
         )
-        print(query.get_sql(quote_char=None))
         cursor.execute(query.get_sql(quote_char=None))
         if cursor.fetchone() is None:
             return False
@@ -101,7 +100,6 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.DIKEMBALIKAN.value) &
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
-        print(query.get_sql(quote_char=None))
         cursor.execute(query.get_sql(quote_char=None))
         return cursor.fetchall()
 
@@ -133,7 +131,6 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.DIKEMBALIKAN.value) &
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
-        print(query.get_sql(quote_char=None))
         cursor.execute(query.get_sql(quote_char=None))
         return cursor.fetchall()
 
@@ -228,9 +225,10 @@ class DBHelper:
             .select(
             self.TABLE_POSITION_PRODUCTS.id,
             self.TABLE_JENIS_PRODUCTS.reminder,
+            self.TABLE_POSITION_PRODUCTS.product_state,
             self.TABLE_POSITION_PRODUCTS.updated_at
         ).where(
-            (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.DIKEMBALIKAN.value) &
+            (self.TABLE_POSITION_PRODUCTS.product_state != ProductState.BELUM_MELAPORKAN.value) &
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
         cursor.execute(q1.get_sql(quote_char=None))
@@ -243,6 +241,14 @@ class DBHelper:
             state = item[1]
             q = Query.update(self.TABLE_POSITION_PRODUCTS).set(
                 self.TABLE_POSITION_PRODUCTS.product_state, state
-            ).where(self.TABLE_POSITION_PRODUCTS.product_id == id_ps)
+            ).where(self.TABLE_POSITION_PRODUCTS.id == id_ps)
             cursor.execute(q.get_sql(quote_char=None))
             self.db.commit()
+
+    def remove_reminder_group(self, chat_id):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_REMINDER_GROUPS).delete().where(
+            self.TABLE_REMINDER_GROUPS.group_id == int(chat_id)
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()

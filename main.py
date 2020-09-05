@@ -200,7 +200,8 @@ def cancel_update(update, context):
 def subscribe_handler(update, context):
     chat_group_id = update.message.chat.id
     title_group = update.message.chat.title
-    print(update)
+    if title_group is None:
+        title_group = update.message.from_user.username
     if db.is_already_reminder(chat_group_id):
         context.bot.send_message(
             chat_id=chat_group_id,
@@ -210,11 +211,13 @@ def subscribe_handler(update, context):
         db.insert_reminder_groups(chat_group_id, title_group)
         context.bot.send_message(
             chat_id=chat_group_id,
-            text="berhasil melakukan langganan notifikasi kepada grup " + title_group
+            text="berhasil melakukan langganan notifikasi kepada " + title_group
         )
 
 
 def turn_on_reminder_handler(update, context):
+    if scheduler.is_on:
+        scheduler.turn_off_reminder()
     if scheduler.turn_on_reminder(context):
         context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -223,7 +226,26 @@ def turn_on_reminder_handler(update, context):
 
 
 def turn_off_reminder(update, context):
-    pass
+    scheduler.turn_off_reminder()
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="reminder dimatikan"
+    )
+
+
+def unsubscribe_handler(update, context):
+    chat_id = update.message.chat.id
+    if not db.is_already_reminder(chat_id):
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="group belum berlangganan sebelumnya, anda dapat berlangganan melalui /subscribe"
+        )
+    else:
+        db.remove_reminder_group(chat_id)
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="fitur notifikasi berlangganan berhasil dimatikan"
+        )
 
 
 if __name__ == "__main__":
@@ -247,6 +269,7 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
     up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
+    up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
     print("Making conversation done")
