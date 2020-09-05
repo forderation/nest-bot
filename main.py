@@ -1,10 +1,8 @@
 import datetime
 import logging
 import os
-import seaborn as sns
 from telegram import InlineKeyboardButton, ChatAction
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, ConversationHandler
-
 from data_report import DataReport
 from db_engine import DBHelper
 from scheduler import Scheduler
@@ -247,6 +245,15 @@ def recap_recent_update_item(update, context):
     )
 
 
+def get_visualize_state(update, context):
+    send_typing_state(update, context)
+    file_name = DataReport.visualize_by_product_state(db.get_products_group_by_state())
+    context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=open(file_name, 'rb')
+    )
+
+
 def unsubscribe_handler(update, context):
     chat_id = update.message.chat.id
     if not db.is_already_reminder(chat_id):
@@ -292,6 +299,7 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
+    up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
     print("Making conversation done")
     up.start_polling()

@@ -4,6 +4,7 @@ from sqlite3.dbapi2 import Cursor
 import mysql.connector as connector
 from pypika import Table, Query
 from pypika.enums import Boolean as BoolSql
+from pypika.functions import Count
 
 
 class ApproveState(Enum):
@@ -272,5 +273,14 @@ class DBHelper:
         ).where(
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
+        cursor.execute(q1.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def get_products_group_by_state(self):
+        cursor = self.get_new_cursor()
+        q1 = Query.from_(self.TABLE_POSITION_PRODUCTS).where(
+            (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
+        ).groupby(self.TABLE_POSITION_PRODUCTS.product_state).select(Count(self.TABLE_PRODUCTS.id),
+                                                                     self.TABLE_PRODUCTS.product_state)
         cursor.execute(q1.get_sql(quote_char=None))
         return list(cursor.fetchall())
