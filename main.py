@@ -19,7 +19,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-product_state_list = ["baik", "hilang", "dikembalikan"]
+product_state_list = ["baik", "hilang", "dikembalikan", "rusak"]
 session = Session()
 logger = logging.getLogger(__name__)
 RECEIVE_ITEM, RECEIVE_PHOTOS = range(1, 3)
@@ -336,6 +336,29 @@ def get_visualize_jenis(update, context):
         )
 
 
+def seed_employees(update, context):
+    user_id = int(update.message.from_user.id)
+    nik = update.message.text.replace('/seed', '').strip()
+    user_name = update.message.from_user.username
+    if db.is_nik_already_seed(int(nik)):
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="nik tidak dapat di seed"
+        )
+    else:
+        if db.is_already_register(int(user_id), int(nik)):
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="nik dan user id telah didaftarkan sebelumnya"
+            )
+        else:
+            db.seed_employee(int(user_id), user_name, int(nik))
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="berhasil melakukan seed"
+            )
+
+
 if __name__ == "__main__":
     print("Connecting to telegram server ...")
     up = Updater("1305082410:AAGGA_lYJJyHN-YeCYa_LqtWwJSwfA_qqRc", use_context=True)
@@ -358,6 +381,7 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
     up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
+    up.dispatcher.add_handler(CommandHandler('seed', seed_employees))
     up.dispatcher.add_handler(CommandHandler('track_record', track_record))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))

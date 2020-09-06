@@ -1,6 +1,5 @@
 from enum import Enum
 from sqlite3.dbapi2 import Cursor
-
 import mysql.connector as connector
 from pypika import Table, Query
 from pypika.enums import Boolean as BoolSql, Order
@@ -18,11 +17,12 @@ class ProductState(Enum):
     HILANG = "hilang"
     BELUM_MELAPORKAN = "belum_melaporkan"
     DIKEMBALIKAN = "dikembalikan"
+    RUSAK = "rusak"
 
 
 class DBHelper:
 
-    def __init__(self, dbname="nest-bot"):
+    def __init__(self, dbname="nest-bot-dev"):
         self.dbname = dbname
         self.db = None
         self.TABLE_EMPLOYEES = Table('employees')
@@ -68,6 +68,17 @@ class DBHelper:
             return False
         else:
             return True
+
+    def is_nik_already_seed(self, nik):
+        cursor = self.db.cursor(buffered=True)
+        query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.telegram_user_id).where(
+            (self.TABLE_EMPLOYEES.nik == nik)
+        )
+        cursor.execute(query.get_sql(quote_char=None))
+        if cursor.fetchone() is None:
+            return True
+        else:
+            return False
 
     def is_user_id_already_register(self, user_id: int) -> bool:
         cursor = self.db.cursor(buffered=True)
@@ -178,6 +189,16 @@ class DBHelper:
         q = Query.into(self.TABLE_REMINDER_GROUPS).columns(
             self.TABLE_REMINDER_GROUPS.group_id, self.TABLE_REMINDER_GROUPS.last_known_group_name
         ).insert(int(chat_id), str(chat_name))
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+
+    def seed_employee(self, user_id, username, nik):
+        cursor = self.get_new_cursor()
+        q = Query.update(self.TABLE_EMPLOYEES).set(
+            self.TABLE_EMPLOYEES.telegram_user_id, user_id
+        ).set(
+            self.TABLE_EMPLOYEES.telegram_user_name, username
+        ).where(self.TABLE_EMPLOYEES.nik == nik)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
 
