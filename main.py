@@ -293,7 +293,7 @@ def track_record(update, context):
                 text="serial number ditemukan namun belum memiliki track record"
             )
         else:
-            df = DataReport.recap_track_records(track_records)
+            df = DataReport.recap_as_dataframe(track_records)
             date_recap = datetime.datetime.today().strftime('%Y-%m-%d')
             file_name = 'rekap track record {} tanggal {}.xlsx'.format(serial_number, date_recap)
             df.to_excel(file_name, index=False)
@@ -302,6 +302,38 @@ def track_record(update, context):
                 document=open(file_name, 'rb'),
                 filename=file_name
             )
+
+
+def get_visualize_merk(update, context):
+    send_typing_state(update, context)
+    data_counts = db.get_count_merk_item()
+    if not data_counts:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="data merk tidak tidak ditemukan"
+        )
+    else:
+        file_name = DataReport.visualize_count_item(data_counts, 'Merk', 'Rekap Merk')
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=open(file_name, 'rb')
+        )
+
+
+def get_visualize_jenis(update, context):
+    send_typing_state(update, context)
+    data_counts = db.get_count_jenis_item()
+    if not data_counts:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="data jenis tidak tidak ditemukan"
+        )
+    else:
+        file_name = DataReport.visualize_count_item(data_counts, 'Jenis', 'Rekap Jenis')
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=open(file_name, 'rb')
+        )
 
 
 if __name__ == "__main__":
@@ -329,6 +361,8 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(CommandHandler('track_record', track_record))
     up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
     up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))
+    up.dispatcher.add_handler(CommandHandler('visualize_merk', get_visualize_merk))
+    up.dispatcher.add_handler(CommandHandler('visualize_jenis', get_visualize_jenis))
     up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
     print("Making conversation done")
     up.start_polling()

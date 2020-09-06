@@ -312,3 +312,23 @@ class DBHelper:
             .where(self.TABLE_PRODUCTS.serial_number == serial_number.upper().strip())
         cursor.execute(q1.get_sql(quote_char=None))
         return cursor.fetchone()
+
+    def get_count_merk_item(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_PRODUCTS).join(self.TABLE_MERK_PRODUCTS) \
+            .on(self.TABLE_PRODUCTS.merk_id == self.TABLE_MERK_PRODUCTS.id) \
+            .groupby(self.TABLE_PRODUCTS.merk_id).select(
+            self.TABLE_MERK_PRODUCTS.merk_name,
+            Count(self.TABLE_PRODUCTS.id))
+        cursor.execute(q.get_sql(quote_char=None))
+        return cursor.fetchall()
+
+    def get_count_jenis_item(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_PRODUCTS).join(self.TABLE_JENIS_PRODUCTS) \
+            .on(self.TABLE_PRODUCTS.jenis_id == self.TABLE_JENIS_PRODUCTS.id) \
+            .groupby(self.TABLE_PRODUCTS.jenis_id).select(
+            self.TABLE_JENIS_PRODUCTS.jenis_name,
+            Count(self.TABLE_PRODUCTS.id))
+        cursor.execute(q.get_sql(quote_char=None))
+        return cursor.fetchall()
