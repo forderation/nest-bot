@@ -68,7 +68,7 @@ def register_handler(update, context):
     else:
         context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="format yang anda masukkan salah"
+            text="format yang anda masukkan salah, gunakan /register nik;nama_lengkap"
         )
 
 
@@ -488,25 +488,27 @@ if __name__ == "__main__":
             RECEIVE_PHOTOS: [MessageHandler(Filters.photo, receive_photo_callback)]
         }
     )
+    # COMMAND UMUM
     up.dispatcher.add_handler(conv_input_data)
     up.dispatcher.add_handler(CommandHandler('start_bot', start_bot))
     up.dispatcher.add_handler(CommandHandler('register', register_handler))
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
-    up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     up.dispatcher.add_handler(CommandHandler('seed', seed_employees))
-    up.dispatcher.add_handler(CommandHandler('track_record', track_record))
     up.dispatcher.add_handler(CommandHandler('my_item', my_item_handler))
-    up.dispatcher.add_handler(CommandHandler('add_merk', add_merk_handler))
-    up.dispatcher.add_handler(CommandHandler('add_jenis', add_jenis_handler))
     up.dispatcher.add_handler(CommandHandler('add_item', add_new_item))
     up.dispatcher.add_handler(CommandHandler('list_code', list_code_handler))
+    up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
+    # COMMAND SPECIAL
+    up.dispatcher.add_handler(CommandHandler('track_record', track_record))
+    up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
     up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
     up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))
     up.dispatcher.add_handler(CommandHandler('visualize_merk', get_visualize_merk))
     up.dispatcher.add_handler(CommandHandler('visualize_jenis', get_visualize_jenis))
-    up.dispatcher.add_handler(CommandHandler('cancel_update', cancel_update))
+    up.dispatcher.add_handler(CommandHandler('add_merk', add_merk_handler))
+    up.dispatcher.add_handler(CommandHandler('add_jenis', add_jenis_handler))
     print("Making conversation done")
     up.start_polling()
     print("Chatbot already to use")
