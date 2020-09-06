@@ -359,6 +359,121 @@ def seed_employees(update, context):
             )
 
 
+def list_code_handler(update, context):
+    list_merk = db.get_list_merk()
+    list_jenis = db.get_list_jenis()
+    text_resp = " === kondisi item === \nhilang, rusak, dikembalikan, baik"
+    text_resp += "\n\n=== list kode merk === "
+    text_resp += "\n code - merk"
+    for merk in list_merk:
+        text_resp += "\n{} - {}".format(merk[0], merk[1])
+    text_resp += "\n\n=== list kode jenis === "
+    text_resp += "\n code - jenis - durasi reminder"
+    for jenis in list_jenis:
+        text_resp += "\n{} - {} - {}".format(jenis[0], jenis[1], jenis[2])
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text_resp
+    )
+
+
+def add_jenis_handler(update, context):
+    respon_message = update.message.text.replace('/add_jenis', '').split(";")
+    if len(respon_message) == 2:
+        if DataReport.is_number(respon_message[1]):
+            db.add_jenis(respon_message[0].strip(), respon_message[1].strip())
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="jenis berhasil ditambahkan"
+            )
+            return
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="format yang anda masukkan salah pastikan format yang dimasukkan /add_jenis (spasi) "
+             "(nama jenis);(durasi reminder) \nex: /add_jenis OPTICAL LISGHT SOURCE ; 6"
+    )
+
+
+def add_new_item(update, context):
+    user_id = int(update.message.from_user.id)
+    respon_message = update.message.text.replace('/add_item', '').split(";")
+    if db.is_user_id_already_register(user_id):
+        if len(respon_message) == 5:
+            sn = str(respon_message[0]).strip().upper()
+            pn = str(respon_message[1]).strip().upper()
+            merk_id = respon_message[2].strip()
+            jenis_id = respon_message[3].strip()
+            product_stated = str(respon_message[4]).strip().lower()
+            if DataReport.is_number(merk_id) and DataReport.is_number(jenis_id):
+                merk_id = int(merk_id)
+                jenis_id = int(jenis_id)
+                if not db.is_sn_exist(sn):
+                    list_id_m = db.get_id_merks()
+                    list_id_j = db.get_id_jenises()
+                    if (merk_id in list_id_m) and (jenis_id in list_id_j):
+                        if is_product_state_in_list(product_stated):
+                            user_id = db.get_user_id_by_telegram(user_id)
+                            db.add_new_item(sn, pn, merk_id, jenis_id, product_stated, user_id)
+                            context.bot.send_message(
+                                chat_id=update.effective_chat.id,
+                                text="penambahan item berhasil dilakukan"
+                            )
+                            return
+                        else:
+                            context.bot.send_message(
+                                chat_id=update.effective_chat.id,
+                                text="kondisi item tidak terdapat pada list lihat di /list_code"
+                            )
+                            return
+                    else:
+                        context.bot.send_message(
+                            chat_id=update.effective_chat.id,
+                            text="kode jenis atau kode merk tidak dikenali lihat di /list_code"
+                        )
+                        return
+                else:
+                    context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text="serial number sudah dipakai sebelumnya"
+                    )
+                    return
+            else:
+                context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="pastikan kode merk dan jenis berupa angka lihat di /list_code"
+                )
+                return
+        else:
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="format yang dimasukkan salah pastikan format yang dimasukkan berupa \n"
+                     " /add_item serial_number ; nama_item ; kode_merk ; kode_jenis ; kondisi_item"
+            )
+            return
+    else:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="user anda belum terdaftar dalam sistem"
+        )
+        return
+
+
+def add_merk_handler(update, context):
+    respon_message = str(update.message.text).replace('/add_merk', '').strip()
+    if len(respon_message) == 0:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="format yang anda masukkan salah pastikan format yang dimasukkan /add_merk (spasi) "
+                 "(nama merk) \nex: /add_merk ALCATEX"
+        )
+        return
+    db.add_merk(respon_message)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="merk berhasil ditambahkan"
+    )
+
+
 if __name__ == "__main__":
     print("Connecting to telegram server ...")
     up = Updater("1305082410:AAGGA_lYJJyHN-YeCYa_LqtWwJSwfA_qqRc", use_context=True)
@@ -376,14 +491,18 @@ if __name__ == "__main__":
     up.dispatcher.add_handler(conv_input_data)
     up.dispatcher.add_handler(CommandHandler('start_bot', start_bot))
     up.dispatcher.add_handler(CommandHandler('register', register_handler))
-    up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
-    up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
     up.dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
     up.dispatcher.add_handler(CommandHandler('recap_recent_item', recap_recent_update_item))
     up.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     up.dispatcher.add_handler(CommandHandler('seed', seed_employees))
     up.dispatcher.add_handler(CommandHandler('track_record', track_record))
-    up.dispatcher.add_handler(CommandHandler('list_item', my_item_handler))
+    up.dispatcher.add_handler(CommandHandler('my_item', my_item_handler))
+    up.dispatcher.add_handler(CommandHandler('add_merk', add_merk_handler))
+    up.dispatcher.add_handler(CommandHandler('add_jenis', add_jenis_handler))
+    up.dispatcher.add_handler(CommandHandler('add_item', add_new_item))
+    up.dispatcher.add_handler(CommandHandler('list_code', list_code_handler))
+    up.dispatcher.add_handler(CommandHandler('turn_on_reminder', turn_on_reminder_handler))
+    up.dispatcher.add_handler(CommandHandler('turn_off_reminder', turn_off_reminder))
     up.dispatcher.add_handler(CommandHandler('visualize_state', get_visualize_state))
     up.dispatcher.add_handler(CommandHandler('visualize_merk', get_visualize_merk))
     up.dispatcher.add_handler(CommandHandler('visualize_jenis', get_visualize_jenis))

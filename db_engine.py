@@ -146,6 +146,13 @@ class DBHelper:
         cursor.execute(query.get_sql(quote_char=None))
         return cursor.fetchall()
 
+    def get_user_id_by_telegram(self, telegram_user_id):
+        cursor = self.db.cursor(buffered=True)
+        q = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id) \
+            .where(self.TABLE_EMPLOYEES.telegram_user_id == telegram_user_id)
+        cursor.execute(q.get_sql(quote_char=None))
+        return list(cursor.fetchone())[0]
+
     def __get_foreign_position_products(self, user_id, sn):
         cursor = self.db.cursor(buffered=True)
         q = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id) \
@@ -353,3 +360,80 @@ class DBHelper:
             Count(self.TABLE_PRODUCTS.id))
         cursor.execute(q.get_sql(quote_char=None))
         return cursor.fetchall()
+
+    def get_id_merks(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_MERK_PRODUCTS).select(
+            self.TABLE_MERK_PRODUCTS.id
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        return [idx[0] for idx in cursor.fetchall()]
+
+    def get_id_jenises(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_JENIS_PRODUCTS).select(
+            self.TABLE_JENIS_PRODUCTS.id
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        return [idx[0] for idx in cursor.fetchall()]
+
+    def get_list_merk(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_MERK_PRODUCTS).select(
+            self.TABLE_MERK_PRODUCTS.id,
+            self.TABLE_MERK_PRODUCTS.merk_name,
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def get_list_jenis(self):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_JENIS_PRODUCTS).select(
+            self.TABLE_JENIS_PRODUCTS.id,
+            self.TABLE_JENIS_PRODUCTS.jenis_name,
+            self.TABLE_JENIS_PRODUCTS.reminder
+        )
+        cursor.execute(q.get_sql(quote_char=None))
+        return list(cursor.fetchall())
+
+    def add_jenis(self, jenis_name, reminder):
+        cursor = self.get_new_cursor()
+        q = Query.into(self.TABLE_JENIS_PRODUCTS) \
+            .columns(self.TABLE_JENIS_PRODUCTS.jenis_name, self.TABLE_JENIS_PRODUCTS.reminder) \
+            .insert(str(jenis_name).strip().upper(), int(reminder))
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+
+    def add_merk(self, merk_name):
+        cursor = self.get_new_cursor()
+        q = Query.into(self.TABLE_MERK_PRODUCTS) \
+            .columns(self.TABLE_MERK_PRODUCTS.merk_name) \
+            .insert(str(merk_name).strip().upper())
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+
+    def add_new_item(self, sn, pn, merk_id, jenis_id, product_stated, user_id):
+        cursor = self.get_new_cursor()
+        q = Query.into(self.TABLE_PRODUCTS) \
+            .columns(self.TABLE_PRODUCTS.serial_number, self.TABLE_PRODUCTS.product_name, self.TABLE_PRODUCTS.merk_id,
+                     self.TABLE_PRODUCTS.jenis_id) \
+            .insert(sn, pn, merk_id, jenis_id)
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+        id_product = self.get_id_products_by_sn(sn)
+        cursor = self.get_new_cursor()
+        q = Query.into(self.TABLE_POSITION_PRODUCTS) \
+            .columns(self.TABLE_POSITION_PRODUCTS.new_update, self.TABLE_POSITION_PRODUCTS.employee_id,
+                     self.TABLE_POSITION_PRODUCTS.product_id, self.TABLE_POSITION_PRODUCTS.approve_state,
+                     self.TABLE_POSITION_PRODUCTS.product_state) \
+            .insert(BoolSql.true, user_id, id_product, ApproveState.APPROVED.value, product_stated)
+        cursor.execute(q.get_sql(quote_char=None))
+        self.db.commit()
+
+    def get_id_products_by_sn(self, sn):
+        cursor = self.get_new_cursor()
+        q = Query.from_(self.TABLE_PRODUCTS).select(
+            self.TABLE_PRODUCTS.id
+        ).where(self.TABLE_PRODUCTS.serial_number == sn)
+        cursor.execute(q.get_sql(quote_char=None))
+        return cursor.fetchone()[0]

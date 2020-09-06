@@ -43,3 +43,11 @@ class DataReport:
         file_name = "jumlah item by merk {}.png".format(date_recap)
         plt.savefig(file_name)
         return file_name
+
+    @staticmethod
+    def is_number(num) -> bool:
+        try:
+            int(num)
+            return True
+        except ValueError:
+            return False

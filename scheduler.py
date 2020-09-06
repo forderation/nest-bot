@@ -21,7 +21,7 @@ class Scheduler:
         self.is_on = True
         self.context = context_bot
         self.db.build_connection()
-        self.scheduler.add_job(self.__broadcast_remind, 'interval', hours=24, id=self.id_job_broadcast,
+        self.scheduler.add_job(self.__broadcast_remind, 'interval', seconds=15, id=self.id_job_broadcast,
                                replace_existing=True)
         return True
 
