@@ -1,5 +1,4 @@
 from enum import Enum
-from sqlite3.dbapi2 import Cursor
 import mysql.connector as connector
 from pypika import Table, Query
 from pypika.enums import Boolean as BoolSql, Order
@@ -166,7 +165,7 @@ class DBHelper:
         products_id = list(cursor.fetchone())[0]
         return employee_id, products_id
 
-    def get_new_cursor(self) -> Cursor:
+    def get_new_cursor(self):
         return self.db.cursor(buffered=True)
 
     def update_item_condition(self, user_id, sn, product_state, photo_path):

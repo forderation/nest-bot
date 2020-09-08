@@ -476,7 +476,7 @@ def add_merk_handler(update, context):
 
 if __name__ == "__main__":
     print("Connecting to telegram server ...")
-    up = Updater("1305082410:AAGGA_lYJJyHN-YeCYa_LqtWwJSwfA_qqRc", use_context=True)
+    up = Updater("1373253635:AAH_FzShGIxHuR-3coMhN4nF4MrtV2eypnw", use_context=True)
     print("Connected to telegram server")
     print("Making conversation ...")
     conv_input_data = ConversationHandler(
