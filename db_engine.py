@@ -295,6 +295,7 @@ class DBHelper:
             self.TABLE_JENIS_PRODUCTS.jenis_name,
             self.TABLE_POSITION_PRODUCTS.product_state,
             self.TABLE_EMPLOYEES.full_name,
+            self.TABLE_EMPLOYEES.nik,
             self.TABLE_POSITION_PRODUCTS.updated_at,
             self.TABLE_POSITION_PRODUCTS.picture_loc
         ).where(
@@ -326,6 +327,7 @@ class DBHelper:
             self.TABLE_JENIS_PRODUCTS.jenis_name,
             self.TABLE_POSITION_PRODUCTS.product_state,
             self.TABLE_EMPLOYEES.full_name,
+            self.TABLE_EMPLOYEES.nik,
             self.TABLE_POSITION_PRODUCTS.updated_at,
             self.TABLE_POSITION_PRODUCTS.picture_loc) \
             .where(self.TABLE_POSITION_PRODUCTS.product_id == product_id) \
