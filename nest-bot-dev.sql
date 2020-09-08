@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 06, 2020 at 01:57 PM
+-- Generation Time: Sep 08, 2020 at 06:12 AM
 -- Server version: 10.4.14-MariaDB
 -- PHP Version: 7.4.9
 
@@ -162,7 +162,7 @@ INSERT INTO `position_products` (`id`, `new_update`, `picture_loc`, `employee_id
 (1, 1, NULL, 1, NULL, 1, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
 (2, 1, NULL, 2, NULL, 2, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
 (3, 1, NULL, 3, NULL, 3, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
-(4, 1, NULL, 4, NULL, 4, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
+(4, 1, NULL, 4, NULL, 4, 'approved', 'belum_melaporkan', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
 (5, 1, NULL, 5, NULL, 5, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
 (6, 1, NULL, 6, NULL, 6, 'approved', 'baik', '2020-09-06 11:36:14', '2020-09-06 11:36:14'),
 (7, 1, NULL, 7, NULL, 7, 'approved', 'hilang', '2020-09-06 11:36:15', '2020-09-06 11:36:15'),
@@ -180,9 +180,9 @@ INSERT INTO `position_products` (`id`, `new_update`, `picture_loc`, `employee_id
 (19, 1, NULL, 19, NULL, 19, 'approved', 'dikembalikan', '2020-09-06 11:36:15', '2020-09-06 11:36:15'),
 (20, 1, NULL, 20, NULL, 20, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
 (21, 1, NULL, 21, NULL, 21, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
-(22, 1, NULL, 22, NULL, 22, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
+(22, 1, NULL, 22, NULL, 22, 'approved', 'belum_melaporkan', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
 (23, 1, NULL, 23, NULL, 23, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
-(24, 1, NULL, 24, NULL, 24, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
+(24, 1, NULL, 24, NULL, 24, 'approved', 'belum_melaporkan', '2020-09-06 11:36:16', '2020-09-06 11:36:16'),
 (25, 1, NULL, 25, NULL, 25, 'approved', 'baik', '2020-09-06 11:36:16', '2020-09-06 11:36:16');
 
 -- --------------------------------------------------------
@@ -245,6 +245,13 @@ CREATE TABLE `reminder_groups` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `reminder_groups`
+--
+
+INSERT INTO `reminder_groups` (`id`, `group_id`, `last_known_group_name`, `created_at`, `updated_at`) VALUES
+(4, 507549293, 'muzaki_gh', '2020-09-06 17:24:01', '2020-09-06 17:24:01');
 
 --
 -- Indexes for dumped tables
@@ -314,13 +321,13 @@ ALTER TABLE `employees`
 -- AUTO_INCREMENT for table `jenis_products`
 --
 ALTER TABLE `jenis_products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `merk_products`
 --
 ALTER TABLE `merk_products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `migrations`
@@ -332,19 +339,19 @@ ALTER TABLE `migrations`
 -- AUTO_INCREMENT for table `position_products`
 --
 ALTER TABLE `position_products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `reminder_groups`
 --
 ALTER TABLE `reminder_groups`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables

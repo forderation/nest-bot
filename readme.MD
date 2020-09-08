@@ -2,7 +2,7 @@ Cara Install
 1. Download Project Ini
 2. Start XAMPP
 3. Kemudian masuk phpmyadmin buat database bernama "nest-bot-dev" tanpa tanda petik dua
-4. Setelah itu import file nest-bot-sql ke database yang sudah dibuat
+4. Setelah itu import file nest-bot-dev.sql ke database yang sudah dibuat
 5. Buka CMD arahkan lokasi path pada folder project ini
 6. Kemudian ketik pip install -r requirements.txt
 7. Setelah proses pip selesai untuk menjalankan bot ketik python main.py
