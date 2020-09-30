@@ -47,6 +47,9 @@ class DBHelper:
             except connector.errors.InterfaceError:
                 print("Connection error, try to connecting again")
 
+    def close_connection(self):
+        self.db.close()
+
     def register(self, user_id, full_name, nik):
         cursor = self.db.cursor(buffered=True)
         query = Query.into(self.TABLE_EMPLOYEES) \
@@ -55,6 +58,7 @@ class DBHelper:
         print(query.get_sql(quote_char=None))
         cursor.execute(query.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def is_already_register(self, user_id: int, nik: int) -> bool:
         cursor = self.db.cursor(buffered=True)
@@ -63,10 +67,11 @@ class DBHelper:
             (self.TABLE_EMPLOYEES.nik == nik)
         )
         cursor.execute(query.get_sql(quote_char=None))
+        state = True
         if cursor.fetchone() is None:
-            return False
-        else:
-            return True
+            state = False
+        cursor.close()
+        return state
 
     def is_nik_already_seed(self, nik):
         cursor = self.db.cursor(buffered=True)
@@ -74,33 +79,36 @@ class DBHelper:
             (self.TABLE_EMPLOYEES.nik == nik)
         )
         cursor.execute(query.get_sql(quote_char=None))
+        state = False
         if cursor.fetchone() is None:
-            return True
-        else:
-            return False
+            state = True
+        cursor.close()
+        return state
 
     def is_user_id_already_register(self, user_id: int) -> bool:
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.star).where(
             self.TABLE_EMPLOYEES.telegram_user_id == user_id
         )
         cursor.execute(query.get_sql(quote_char=None))
+        state = True
         if cursor.fetchone() is None:
-            return False
-        else:
-            return True
+            state = False
+        cursor.close()
+        return state
 
     def get_employees_id(self, user_id: int) -> int:
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         query = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id).where(
             self.TABLE_EMPLOYEES.telegram_user_id == user_id
         )
         cursor.execute(query.get_sql(quote_char=None))
         list_convert = list(cursor.fetchone())
+        cursor.close()
         return list_convert[0]
 
     def get_sn_related(self, user_id: int):
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         query = Query.from_(self.TABLE_POSITION_PRODUCTS) \
             .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
             .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
@@ -115,18 +123,19 @@ class DBHelper:
         return cursor.fetchall()
 
     def is_sn_exist(self, sn: str) -> bool:
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         query = Query.from_(self.TABLE_PRODUCTS).select(self.TABLE_PRODUCTS.star).where(
             self.TABLE_PRODUCTS.serial_number == sn
         )
         cursor.execute(query.get_sql(quote_char=None))
+        state = True
         if cursor.fetchone() is None:
-            return False
-        else:
-            return True
+            state = False
+        cursor.close()
+        return state
 
     def get_related_item(self, user_id: int) -> tuple:
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         query = Query.from_(self.TABLE_POSITION_PRODUCTS) \
             .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
             .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
@@ -143,17 +152,21 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
         cursor.execute(query.get_sql(quote_char=None))
-        return cursor.fetchall()
+        fetched_data = cursor.fetchall()
+        cursor.close()
+        return fetched_data
 
     def get_user_id_by_telegram(self, telegram_user_id):
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         q = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id) \
             .where(self.TABLE_EMPLOYEES.telegram_user_id == telegram_user_id)
         cursor.execute(q.get_sql(quote_char=None))
-        return list(cursor.fetchone())[0]
+        fetched_data = list(cursor.fetchone())[0]
+        cursor.close()
+        return fetched_data
 
     def __get_foreign_position_products(self, user_id, sn):
-        cursor = self.db.cursor(buffered=True)
+        cursor = self.get_new_cursor()
         q = Query.from_(self.TABLE_EMPLOYEES).select(self.TABLE_EMPLOYEES.id) \
             .where(self.TABLE_EMPLOYEES.telegram_user_id == user_id)
         cursor.execute(q.get_sql(quote_char=None))
@@ -163,6 +176,7 @@ class DBHelper:
             .where(self.TABLE_PRODUCTS.serial_number == sn)
         cursor.execute(q.get_sql(quote_char=None))
         products_id = list(cursor.fetchone())[0]
+        cursor.close()
         return employee_id, products_id
 
     def get_new_cursor(self):
@@ -181,6 +195,7 @@ class DBHelper:
                    )
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
         cursor = self.db.cursor(buffered=True)
         q = Query.into(self.TABLE_POSITION_PRODUCTS).columns(
             self.TABLE_POSITION_PRODUCTS.new_update, self.TABLE_POSITION_PRODUCTS.picture_loc,
@@ -189,6 +204,7 @@ class DBHelper:
         ).insert(BoolSql.true, photo_path, products_id, product_state, employee_id)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def insert_reminder_groups(self, chat_id, chat_name):
         cursor = self.get_new_cursor()
@@ -197,6 +213,7 @@ class DBHelper:
         ).insert(int(chat_id), str(chat_name))
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def seed_employee(self, user_id, username, nik):
         cursor = self.get_new_cursor()
@@ -207,6 +224,7 @@ class DBHelper:
         ).where(self.TABLE_EMPLOYEES.nik == nik)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def is_already_reminder(self, chat_id):
         cursor = self.get_new_cursor()
@@ -214,16 +232,19 @@ class DBHelper:
             self.TABLE_REMINDER_GROUPS.group_id == int(chat_id)
         )
         cursor.execute(q.get_sql(quote_char=None))
+        state_return = True
         if cursor.fetchone() is None:
-            return False
-        else:
-            return True
+            state_return = False
+        cursor.close()
+        return state_return
 
     def get_reminder_groups(self):
-        cursor = self.get_new_cursor()
+        cursor = self.db.cursor()
         q = Query.from_(self.TABLE_REMINDER_GROUPS).select(self.TABLE_REMINDER_GROUPS.star)
         cursor.execute(q.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = cursor.fetchall()
+        cursor.close()
+        return list(fetched_data)
 
     def get_item_to_remind(self):
         cursor = self.get_new_cursor()
@@ -243,10 +264,12 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
         cursor.execute(q1.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_date = list(cursor.fetchall())
+        cursor.close()
+        return fetched_date
 
     def get_item_to_update(self):
-        cursor = self.get_new_cursor()
+        cursor = self.db.cursor()
         q1 = Query.from_(self.TABLE_POSITION_PRODUCTS) \
             .join(self.TABLE_PRODUCTS).on(self.TABLE_PRODUCTS.id == self.TABLE_POSITION_PRODUCTS.product_id) \
             .join(self.TABLE_JENIS_PRODUCTS).on(self.TABLE_JENIS_PRODUCTS.id == self.TABLE_PRODUCTS.jenis_id) \
@@ -260,7 +283,9 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
         cursor.execute(q1.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def update_item_state(self, list_update_remind):
         for item in list_update_remind:
@@ -272,6 +297,7 @@ class DBHelper:
             ).where(self.TABLE_POSITION_PRODUCTS.id == id_ps)
             cursor.execute(q.get_sql(quote_char=None))
             self.db.commit()
+            cursor.close()
 
     def remove_reminder_group(self, chat_id):
         cursor = self.get_new_cursor()
@@ -280,6 +306,7 @@ class DBHelper:
         )
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def get_recap_recent_update(self):
         cursor = self.get_new_cursor()
@@ -302,7 +329,9 @@ class DBHelper:
             (self.TABLE_POSITION_PRODUCTS.new_update == BoolSql.true)
         )
         cursor.execute(q1.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def get_products_group_by_state(self):
         cursor = self.get_new_cursor()
@@ -311,7 +340,9 @@ class DBHelper:
         ).groupby(self.TABLE_POSITION_PRODUCTS.product_state).select(Count(self.TABLE_PRODUCTS.id),
                                                                      self.TABLE_PRODUCTS.product_state)
         cursor.execute(q1.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def get_track_record(self, product_id):
         cursor = self.get_new_cursor()
@@ -333,14 +364,18 @@ class DBHelper:
             .where(self.TABLE_POSITION_PRODUCTS.product_id == product_id) \
             .orderby(self.TABLE_POSITION_PRODUCTS.updated_at, order=Order.desc)
         cursor.execute(q1.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def get_product_id(self, serial_number: str):
         cursor = self.get_new_cursor()
         q1 = Query.from_(self.TABLE_PRODUCTS).select(self.TABLE_PRODUCTS.id) \
             .where(self.TABLE_PRODUCTS.serial_number == serial_number.upper().strip())
         cursor.execute(q1.get_sql(quote_char=None))
-        return cursor.fetchone()
+        fetched_data = cursor.fetchone()
+        cursor.close()
+        return fetched_data
 
     def get_count_merk_item(self):
         cursor = self.get_new_cursor()
@@ -350,7 +385,9 @@ class DBHelper:
             self.TABLE_MERK_PRODUCTS.merk_name,
             Count(self.TABLE_PRODUCTS.id))
         cursor.execute(q.get_sql(quote_char=None))
-        return cursor.fetchall()
+        fetched_data = cursor.fetchall()
+        cursor.close()
+        return fetched_data
 
     def get_count_jenis_item(self):
         cursor = self.get_new_cursor()
@@ -360,7 +397,9 @@ class DBHelper:
             self.TABLE_JENIS_PRODUCTS.jenis_name,
             Count(self.TABLE_PRODUCTS.id))
         cursor.execute(q.get_sql(quote_char=None))
-        return cursor.fetchall()
+        fetched_data = cursor.fetchall()
+        cursor.close()
+        return fetched_data
 
     def get_id_merks(self):
         cursor = self.get_new_cursor()
@@ -368,7 +407,9 @@ class DBHelper:
             self.TABLE_MERK_PRODUCTS.id
         )
         cursor.execute(q.get_sql(quote_char=None))
-        return [idx[0] for idx in cursor.fetchall()]
+        fetched_data = [idx[0] for idx in cursor.fetchall()]
+        cursor.close()
+        return fetched_data
 
     def get_id_jenises(self):
         cursor = self.get_new_cursor()
@@ -376,7 +417,9 @@ class DBHelper:
             self.TABLE_JENIS_PRODUCTS.id
         )
         cursor.execute(q.get_sql(quote_char=None))
-        return [idx[0] for idx in cursor.fetchall()]
+        fetched_data = [idx[0] for idx in cursor.fetchall()]
+        cursor.close()
+        return fetched_data
 
     def get_list_merk(self):
         cursor = self.get_new_cursor()
@@ -385,7 +428,9 @@ class DBHelper:
             self.TABLE_MERK_PRODUCTS.merk_name,
         )
         cursor.execute(q.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def get_list_jenis(self):
         cursor = self.get_new_cursor()
@@ -395,7 +440,9 @@ class DBHelper:
             self.TABLE_JENIS_PRODUCTS.reminder
         )
         cursor.execute(q.get_sql(quote_char=None))
-        return list(cursor.fetchall())
+        fetched_data = list(cursor.fetchall())
+        cursor.close()
+        return fetched_data
 
     def add_jenis(self, jenis_name, reminder):
         cursor = self.get_new_cursor()
@@ -404,6 +451,7 @@ class DBHelper:
             .insert(str(jenis_name).strip().upper(), int(reminder))
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def add_merk(self, merk_name):
         cursor = self.get_new_cursor()
@@ -412,6 +460,7 @@ class DBHelper:
             .insert(str(merk_name).strip().upper())
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def add_new_item(self, sn, pn, merk_id, jenis_id, product_stated, user_id):
         cursor = self.get_new_cursor()
@@ -421,6 +470,7 @@ class DBHelper:
             .insert(sn, pn, merk_id, jenis_id)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
         id_product = self.get_id_products_by_sn(sn)
         cursor = self.get_new_cursor()
         q = Query.into(self.TABLE_POSITION_PRODUCTS) \
@@ -430,6 +480,7 @@ class DBHelper:
             .insert(BoolSql.true, user_id, id_product, ApproveState.APPROVED.value, product_stated)
         cursor.execute(q.get_sql(quote_char=None))
         self.db.commit()
+        cursor.close()
 
     def get_id_products_by_sn(self, sn):
         cursor = self.get_new_cursor()
@@ -437,4 +488,6 @@ class DBHelper:
             self.TABLE_PRODUCTS.id
         ).where(self.TABLE_PRODUCTS.serial_number == sn)
         cursor.execute(q.get_sql(quote_char=None))
-        return cursor.fetchone()[0]
+        fetched_data = cursor.fetchone()[0]
+        cursor.close()
+        return fetched_data

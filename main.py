@@ -204,7 +204,7 @@ def subscribe_handler(update, context):
     if db.is_already_reminder(chat_group_id):
         context.bot.send_message(
             chat_id=chat_group_id,
-            text="group sudah berlangganan notifikasi reminder sebelumnya"
+            text="sudah berlangganan notifikasi reminder sebelumnya"
         )
     else:
         db.insert_reminder_groups(chat_group_id, title_group)
@@ -259,7 +259,7 @@ def unsubscribe_handler(update, context):
     if not db.is_already_reminder(chat_id):
         context.bot.send_message(
             chat_id=chat_id,
-            text="group belum berlangganan sebelumnya, anda dapat berlangganan melalui /subscribe"
+            text="belum berlangganan sebelumnya, anda dapat berlangganan melalui /subscribe"
         )
     else:
         db.remove_reminder_group(chat_id)
@@ -476,7 +476,8 @@ def add_merk_handler(update, context):
 
 if __name__ == "__main__":
     print("Connecting to telegram server ...")
-    up = Updater("1373253635:AAH_FzShGIxHuR-3coMhN4nF4MrtV2eypnw", use_context=True)
+    # gelius 1373253635:AAH_FzShGIxHuR-3coMhN4nF4MrtV2eypnw
+    up = Updater("1305082410:AAGGA_lYJJyHN-YeCYa_LqtWwJSwfA_qqRc", use_context=True)
     print("Connected to telegram server")
     print("Making conversation ...")
     conv_input_data = ConversationHandler(

@@ -9,9 +9,8 @@ class Scheduler:
     def __init__(self):
         self.scheduler = BackgroundScheduler()
         self.id_job_broadcast = 'nest-bot-reminders-broadcast'
-        self.id_job_update_item = 'nest-bot-reminders-update-item'
+        self.id_job_update_item = 'update-item'
         self.db = DBHelper()
-        self.db.build_connection()
         self.context = None
         self.is_on = False
         self.scheduler.add_job(self.__update_item_state, 'interval', hours=23, id=self.id_job_update_item,
@@ -26,6 +25,7 @@ class Scheduler:
         return True
 
     def __broadcast_remind(self):
+        self.db.build_connection()
         text_remind = "=== REMINDER ===" \
                       "\n nomor seri | nama item | jenis | status item | terakhir update | pemegang"
         for serial, product_name, jenis, product_state, update, employee_name in self.db.get_item_to_remind():
@@ -38,8 +38,10 @@ class Scheduler:
                 chat_id=chat_groups,
                 text=text_remind
             )
+        self.db.close_connection()
 
     def __update_item_state(self):
+        self.db.build_connection()
         list_to_remind = self.db.get_item_to_update()
         list_update_remind = []
         for id_ps, duration, ps, updated in list_to_remind:
@@ -50,6 +52,7 @@ class Scheduler:
                 list_update_remind.append([id_ps, ProductState.BELUM_MELAPORKAN.value])
         print(list_update_remind)
         self.db.update_item_state(list_update_remind)
+        self.db.close_connection()
 
     def turn_off_reminder(self):
         self.scheduler.remove_job(self.id_job_broadcast)
